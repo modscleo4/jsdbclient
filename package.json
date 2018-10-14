@@ -1,0 +1,19 @@
+{
+  "name": "jsdbclent",
+  "description": "JSDBClient is the official client for JSDB",
+  "version": "1.0.0",
+  "bin": "./client.js",
+  "author": {
+    "name": "Dhiego Cassiano Fogaça Barbosa",
+    "email": "modscleo4@outlook.com"
+  },
+  "directories": {
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/modscleo4/jsdbclient.git"
+  }
+}
