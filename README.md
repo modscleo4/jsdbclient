@@ -1,4 +1,7 @@
 # jsdbclient
+
+[![Build Status](https://travis-ci.org/modscleo4/jsdbclient.svg?branch=master)](https://travis-ci.org/modscleo4/jsdbclient)
+
 JSDBClient is the official client for JSDB
 https://github.com/modscleo4/jsdb
 

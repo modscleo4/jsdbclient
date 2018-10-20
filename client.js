@@ -52,7 +52,10 @@ client.connect(port, address, function () {
 
 client.on('data', function (data) {
     try {
-        console.log(JSON.parse(data.toLocaleString()))
+        let output = JSON.parse(data.toLocaleString());
+        output.forEach(o => {
+            console.log(o);
+        });
     } catch (e) {
         console.log(data.toLocaleString());
     }
@@ -75,7 +78,7 @@ client.on('error', function (err) {
         console.error('Connection refused. Is server running on ' + address + ":" + port + "?");
         process.exit();
     } else if (err.code === 'ECONNRESET') {
-        console.error('Connection reset');
+        console.error('Connection reset. Maybe the server is no longer running on ' + address + ":" + port);
         process.exit();
     } else {
         console.error(err.message);
