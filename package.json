@@ -1,5 +1,5 @@
 {
-  "name": "jsdbclent",
+  "name": "@modscleo4/jsdbclient",
   "description": "JSDBClient is the official client for JSDB",
   "version": "1.0.0",
   "bin": "./client.js",

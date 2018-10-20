@@ -31,7 +31,18 @@ if (port === 0) {
 let stdin = process.openStdin();
 
 stdin.addListener("data", function (d) {
-    client.write(d.toLocaleString().trim());
+    d = d.toLocaleString().trim();
+    if (d[0] === ".") {
+        // Client internal command
+        d = d.slice(1);
+        if (d === "exit") {
+            closeServer();
+        } else {
+            console.error("Unrecognized command");
+        }
+    } else {
+        client.write(d);
+    }
 });
 
 client.connect(port, address, function () {
@@ -48,11 +59,25 @@ client.on('data', function (data) {
 
 });
 
-client.on('close', function () {
+function closeServer() {
     console.log('Connection closed');
-    process.abort();
+    client.destroy();
+    stdin.removeAllListeners('data');
+    process.exit();
+}
+
+client.on('close', function () {
+    closeServer();
 });
 
 client.on('error', function (err) {
-    console.log(err.message);
+    if (err.code === 'ECONNREFUSED') {
+        console.error('Connection refused. Is server running on ' + address + ":" + port + "?");
+        process.exit();
+    } else if (err.code === 'ECONNRESET') {
+        console.error('Connection reset');
+        process.exit();
+    } else {
+        console.error(err.message);
+    }
 });
