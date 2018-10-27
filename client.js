@@ -1,19 +1,32 @@
 const net = require('net');
 
 let client = new net.Socket();
+let stdin = process.openStdin();
 
-let address = "";
-let port = 0;
-let db = "";
+let address = "localhost";
+let port = 6637;
+let db = "jsdb";
+
+let user = "jsdbadmin";
+let password = "";
 
 for (let i = 0; i < process.argv.length; i++) {
-    if (process.argv[i] === "-d") {
-        db = process.argv[i + 1];
-    } else if (process.argv[i] === "-a") {
-        address = process.argv[i + 1];
-    } else if (process.argv[i] === "-p") {
-        port = parseInt(process.argv[i + 1]);
+    try {
+        if (process.argv[i] === "-d") {
+            db = process.argv[i + 1];
+        } else if (process.argv[i] === "-a") {
+            address = process.argv[i + 1];
+        } else if (process.argv[i] === "-p") {
+            port = parseInt(process.argv[i + 1]);
+        } else if (process.argv[i] === "-U") {
+            user = process.argv[i + 1];
+        } else if (process.argv[i] === "-P") {
+            password = process.argv[i + 1];
+        }
+    } catch (e) {
+        console.error(e.message);
     }
+
 }
 
 if (db === "") {
@@ -27,8 +40,6 @@ if (address === "") {
 if (port === 0) {
     port = 6637;
 }
-
-let stdin = process.openStdin();
 
 stdin.addListener("data", function (d) {
     d = d.toLocaleString().trim();
@@ -46,18 +57,25 @@ stdin.addListener("data", function (d) {
 });
 
 client.connect(port, address, function () {
-    client.write('db ' + db); // Send DB to server
-    console.log('Connected to ' + address + ':' + port + ", DB " + db);
+    let credentials = JSON.stringify({'username': user, 'password': password});
+    client.write('credentials: ' + credentials);
 });
 
 client.on('data', function (data) {
+    data = data.toLocaleString();
+    if (data.toUpperCase().includes("AUTHOK")) {
+        client.write('db ' + db); // Send DB to server
+        console.log('Connected to ' + address + ':' + port + ", DB " + db);
+        return;
+    }
+
     try {
-        let output = JSON.parse(data.toLocaleString());
+        let output = JSON.parse(data);
         output.forEach(o => {
             console.log(o);
         });
     } catch (e) {
-        console.log(data.toLocaleString());
+        console.error(data);
     }
 
 });
