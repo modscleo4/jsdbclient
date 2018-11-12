@@ -18,12 +18,12 @@ $ npm install @modscleo4/jsdbclient
 ```
 
 ## Run
-After installed, you can run JSDBClient without parameters, which will try to connect to your localhost
+After installed, you can run JSDBClient without -a and -p parameters, which will try to connect to your localhost
 ```
-$ npm jsdbclient
+$ npx jsdbclient -d <database> -U <username> -P <password>
 ```
 
 You can still connect o a different server
 ```
-$ npx jsdbclient -a <host address> -p <host port> -d <database>
+$ npx jsdbclient -a <host address> -p <host port> -d <database> -U <username> -P <password>
 ```

@@ -1,7 +1,7 @@
 {
   "name": "@modscleo4/jsdbclient",
   "description": "JSDBClient is the official client for JSDB",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "bin": "./bin/jsdbclient",
   "author": {
     "name": "Dhiego Cassiano Fogaça Barbosa",
