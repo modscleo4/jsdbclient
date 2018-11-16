@@ -64,8 +64,8 @@ client.connect(port, address, function () {
 client.on('data', function (data) {
     data = data.toLocaleString();
     if (data.toUpperCase().includes("AUTHOK")) {
-        client.write(`db ${db}`); // Send DB to server
-        console.log(`Connected to ${address}:${port}, DB ${db}`);
+        client.write(`USE ${db}`); // Send DB to server
+        console.log(`Connected to ${address}:${port}.`);
         return;
     }
 
