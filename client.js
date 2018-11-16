@@ -49,7 +49,7 @@ stdin.addListener("data", function (d) {
         if (d === "exit") {
             closeServer();
         } else {
-            console.error("Unrecognized command");
+            console.error(`Unrecognized command: ${d}`);
         }
     } else {
         client.write(d);
@@ -58,14 +58,14 @@ stdin.addListener("data", function (d) {
 
 client.connect(port, address, function () {
     let credentials = JSON.stringify({'username': user, 'password': password});
-    client.write('credentials: ' + credentials);
+    client.write(`credentials: ${credentials}`);
 });
 
 client.on('data', function (data) {
     data = data.toLocaleString();
     if (data.toUpperCase().includes("AUTHOK")) {
-        client.write('db ' + db); // Send DB to server
-        console.log('Connected to ' + address + ':' + port + ", DB " + db);
+        client.write(`db ${db}`); // Send DB to server
+        console.log(`Connected to ${address}:${port}, DB ${db}`);
         return;
     }
 
@@ -79,7 +79,7 @@ client.on('data', function (data) {
             if (o['code'] === 0) {
                 console.log(o['data']);
             } else {
-                throw new Error("ERR: " + o['message']);
+                throw new Error(`ERR: ${o['message']}`);
             }
         });
     } catch (e) {
@@ -101,10 +101,13 @@ client.on('close', function () {
 
 client.on('error', function (err) {
     if (err.code === 'ECONNREFUSED') {
-        console.error('Connection refused. Is server running on ' + address + ":" + port + "?");
+        console.error(`Connection refused. Is server running on ${address}:${port}?`);
         process.exit();
     } else if (err.code === 'ECONNRESET') {
-        console.error('Connection reset. Maybe the server is no longer running on ' + address + ":" + port);
+        console.error(`Connection reset. Maybe the server is no longer running on ${address}:${port}`);
+        process.exit();
+    } else if (err.code === 'ENOTFOUND') {
+        console.error(`Server at '${address}' not found. Is the server address correct?`);
         process.exit();
     } else {
         console.error(err.message);
