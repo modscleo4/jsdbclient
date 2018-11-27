@@ -62,9 +62,9 @@ client.connect(port, address, function () {
 });
 
 client.on('data', function (data) {
-    data = data.toLocaleString();
+    data = data.toLocaleString().trim();
     if (data.toUpperCase().includes("AUTHOK")) {
-        client.write(`USE ${db}`); // Send DB to server
+        client.write(`NOPERF;USE ${db};`); // Send DB to server
         console.log(`Connected to ${address}:${port}.`);
         return;
     }
@@ -75,13 +75,22 @@ client.on('data', function (data) {
         }
 
         let output = JSON.parse(data);
+        let t = 0;
         output.forEach(o => {
             if (o['code'] === 0) {
                 console.log(o['data']);
             } else {
                 throw new Error(`ERR: ${o['message']}`);
             }
+
+            if (o['time'] !== 'NOTIME') {
+                t += o['time'];
+            }
         });
+
+        if (t !== 0) {
+            console.log(`SQL statement executed in ${t} ms.`);
+        }
     } catch (e) {
         console.error(e.message);
     }
