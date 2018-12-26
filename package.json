@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "bin": "./bin/jsdbclient",
   "scripts": {
-    "test": "test.js"
+    "test": "mocha"
   },
   "author": {
     "name": "Dhiego Cassiano Fogaça Barbosa",
@@ -19,6 +19,9 @@
   "license": "Apache-2.0",
   "dependencies": {
     "perf_hooks": "0.0.1"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0"
   },
   "repository": {
     "type": "git",
