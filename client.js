@@ -1,5 +1,9 @@
 const net = require('net');
 
+const {
+    performance
+} = require('perf_hooks');
+
 let client = new net.Socket();
 let stdin = process.openStdin();
 
@@ -10,18 +14,27 @@ let db = "jsdb";
 let user = "jsdbadmin";
 let password = "";
 
+let pingTest = false;
+let t = 4;
+let T = 0;
+let time;
+
 for (let i = 0; i < process.argv.length; i++) {
     try {
-        if (process.argv[i] === "-d") {
+        if (process.argv[i] === "-d" || process.argv[i] === "--database") {
             db = process.argv[i + 1];
-        } else if (process.argv[i] === "-a") {
+        } else if (process.argv[i] === "-a" || process.argv[i] === "--address") {
             address = process.argv[i + 1];
-        } else if (process.argv[i] === "-p") {
+        } else if (process.argv[i] === "-p" || process.argv[i] === "--port") {
             port = parseInt(process.argv[i + 1]);
-        } else if (process.argv[i] === "-U") {
+        } else if (process.argv[i] === "-U" || process.argv[i] === "--user") {
             user = process.argv[i + 1];
-        } else if (process.argv[i] === "-P") {
+        } else if (process.argv[i] === "-P" || process.argv[i] === "--password") {
             password = process.argv[i + 1];
+        } else if (process.argv[i] === "--pingTest") {
+            pingTest = true;
+        } else if (process.argv[i] === "-t") {
+            t = parseInt(process.argv[i + 1]);
         }
     } catch (e) {
         console.error(e.message);
@@ -41,24 +54,46 @@ if (port === 0) {
     port = 6637;
 }
 
-stdin.addListener("data", function (d) {
-    d = d.toLocaleString().trim();
-    if (d[0] === ".") {
-        // Client internal command
-        d = d.slice(1);
-        if (d === "exit") {
-            closeServer();
+if (!pingTest) {
+    stdin.addListener("data", function (d) {
+        d = d.toLocaleString().trim();
+        if (d[0] === ".") {
+            // Client internal command
+            d = d.slice(1);
+            if (d === "exit") {
+                closeServer();
+            } else if (d === "help") {
+                let commands = [
+                    {
+                        "command": ".help",
+                        "description": "Display all the commands."
+                    },
+
+                    {
+                        "command": ".exit",
+                        "description": "Closes the connection."
+                    }
+                ];
+                console.table(commands);
+            } else {
+                console.error(`Unrecognized command: ${d}`);
+            }
+
+            process.stdout.write("SQL> ");
         } else {
-            console.error(`Unrecognized command: ${d}`);
+            client.write(d);
         }
-    } else {
-        client.write(d);
-    }
-});
+    });
+}
 
 client.connect(port, address, function () {
-    let credentials = JSON.stringify({'username': user, 'password': password});
-    client.write(`credentials: ${credentials}`);
+    if (!pingTest) {
+        let credentials = JSON.stringify({'username': user, 'password': password});
+        client.write(`credentials: ${credentials}`);
+    } else {
+        time = performance.now();
+        client.write("PING");
+    }
 });
 
 client.on('data', function (data) {
@@ -67,6 +102,19 @@ client.on('data', function (data) {
         client.write(`NOPERF;USE ${db};`); // Send DB to server
         console.log(`Connected to ${address}:${port}.`);
         return;
+    } else if (data.toUpperCase().includes("PONG")) {
+        time = performance.now() - time;
+        console.log(`Time: ${time} ms.`);
+
+        T++;
+
+        if (T < t || t === 0) {
+            time = performance.now();
+            client.write("PING");
+        } else if (T === t) {
+            closeServer();
+        }
+        return;
     }
 
     try {
@@ -74,19 +122,21 @@ client.on('data', function (data) {
             throw new Error(data);
         }
 
-        let output = JSON.parse(data);
+        let o = JSON.parse(data);
         let t = 0;
-        output.forEach(o => {
-            if (o['code'] === 0) {
-                console.log(o['data']);
+        if (o['code'] === 0) {
+            if (typeof o['data'] === "object") {
+                console.table(o['data']);
             } else {
-                throw new Error(`ERR: ${o['message']}`);
+                console.log(o['data']);
             }
+        } else {
+            throw new Error(`ERR: ${o['message']}`);
+        }
 
-            if (o['time'] !== 'NOTIME') {
-                t += o['time'];
-            }
-        });
+        if (o['time'] !== 'NOTIME') {
+            t += o['time'];
+        }
 
         if (t !== 0) {
             console.log(`SQL statement executed in ${t} ms.`);
@@ -95,6 +145,9 @@ client.on('data', function (data) {
         console.error(e.message);
     }
 
+    if (!data.includes("AUTHOK") && !data.includes("PONG")) {
+        process.stdout.write("SQL> ");
+    }
 });
 
 function closeServer() {

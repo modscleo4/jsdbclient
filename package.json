@@ -3,14 +3,22 @@
   "description": "JSDBClient is the official client for JSDB",
   "version": "1.0.0",
   "bin": "./bin/jsdbclient",
+  "scripts": {
+    "test": "test.js"
+  },
   "author": {
     "name": "Dhiego Cassiano Fogaça Barbosa",
     "email": "modscleo4@outlook.com"
   },
-  "directories": {
+  "bugs": {
+    "url": "https://github.com/modscleo4/jsdbclient/issues",
+    "email": "dhiego.cf.barbosa@gmail.com"
   },
+  "homepage": "https://github.com/modscleo4/jsdbclient#readme",
+  "directories": {},
   "license": "Apache-2.0",
   "dependencies": {
+    "perf_hooks": "0.0.1"
   },
   "repository": {
     "type": "git",
