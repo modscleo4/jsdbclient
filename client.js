@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
 
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,31 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @file This is the main script of JSDB Client
+ * @file This is the main script of JSDB client
  *
  * @author Dhiego Cassiano Fogaça Barbosa <modscleo4@outlook.com>
  * */
 
-const net = require('net');
-
+const Connection = require('./connection');
 const {
     performance
 } = require('perf_hooks');
 
-let client = new net.Socket();
 let stdin = process.openStdin();
 
 let address = "localhost";
 let port = 6637;
-let db = "jsdb";
 
+let db = "jsdb";
 let user = "jsdbadmin";
 let password = "";
 
 let pingTest = false;
 let t = 4;
 let T = 0;
-let time;
 
 for (let i = 0; i < process.argv.length; i++) {
     try {
@@ -81,7 +78,7 @@ if (!pingTest) {
             // Client internal command
             d = d.slice(1);
             if (d === "exit") {
-                closeServer();
+                connection.close();
             } else if (d === "help") {
                 let commands = [
                     {
@@ -101,36 +98,28 @@ if (!pingTest) {
 
             process.stdout.write("SQL> ");
         } else {
-            client.write(d);
+            connection.send(d);
         }
     });
 }
 
-client.connect(port, address, function () {
-    if (!pingTest) {
-        let credentials = JSON.stringify({'username': user, 'password': password});
-        client.write(`credentials: ${credentials}`);
-    } else {
-        time = performance.now();
-        client.write("PING");
-    }
-});
+let connectionString = `Host: ${address}; Port: ${port}; Database: ${db}; User Id: ${user}; Password: ${password};`;
+let connection = new Connection(connectionString, pingTest, t);
 
-client.on('data', function (data) {
+connection.client.on('data', data => {
     data = data.toLocaleString().trim();
     if (data.toUpperCase().includes("AUTHOK")) {
-        client.write(`NOPERF;USE ${db};`); // Send DB to server
         console.log(`Connected to ${address}:${port}.`);
         return;
     } else if (data.toUpperCase().includes("PONG")) {
-        time = performance.now() - time;
+        connection.time = performance.now() - connection.time;
         console.log(`Time: ${time} ms.`);
 
         T++;
 
         if (T < t || t === 0) {
-            time = performance.now();
-            client.write("PING");
+            connection.time = performance.now();
+            connection.send("PING");
         } else if (T === t) {
             closeServer();
         }
@@ -172,16 +161,16 @@ client.on('data', function (data) {
 
 function closeServer() {
     console.log('Connection closed');
-    client.destroy();
+    connection.close();
     stdin.removeAllListeners('data');
     process.exit();
 }
 
-client.on('close', function () {
+connection.client.on('close', () => {
     closeServer();
 });
 
-client.on('error', function (err) {
+connection.client.on('error', err => {
     if (err.code === 'ECONNREFUSED') {
         console.error(`Connection refused. Is server running on ${address}:${port}?`);
         process.exit();
