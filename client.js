@@ -13,156 +13,136 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @file This is the main script of JSDB client
+ * @file This is the main script of JSDBClient
  *
  * @author Dhiego Cassiano Fogaça Barbosa <modscleo4@outlook.com>
  * */
 
-const Connection = require('./connection');
-const {
-    performance
-} = require('perf_hooks');
+'use strict';
 
-let stdin = process.openStdin();
+const {config} = require('./config');
+const Connection = require('./lib/connection');
 
-let address = "localhost";
-let port = 6637;
+const {performance} = require('perf_hooks');
 
-let db = "jsdb";
-let user = "jsdbadmin";
-let password = "";
+const connectionString = `jsdb://${config.connection.user}:${config.connection.user}@${config.connection.address}:${config.connection.port}/${config.connection.database}?encode=utf-8`;
+const connection = new Connection(connectionString);
 
-let pingTest = false;
-let t = 4;
-let T = 0;
+if (config.ping.pingTest) {
+    let T = 0;
+    let time;
 
-for (let i = 0; i < process.argv.length; i++) {
-    try {
-        if (process.argv[i] === "-d" || process.argv[i] === "--database") {
-            db = process.argv[i + 1];
-        } else if (process.argv[i] === "-a" || process.argv[i] === "--address") {
-            address = process.argv[i + 1];
-        } else if (process.argv[i] === "-p" || process.argv[i] === "--port") {
-            port = parseInt(process.argv[i + 1]);
-        } else if (process.argv[i] === "-U" || process.argv[i] === "--user") {
-            user = process.argv[i + 1];
-        } else if (process.argv[i] === "-P" || process.argv[i] === "--password") {
-            password = process.argv[i + 1];
-        } else if (process.argv[i] === "--pingTest") {
-            pingTest = true;
-        } else if (process.argv[i] === "-t") {
-            t = parseInt(process.argv[i + 1]);
+    const client = new (require('net')).Socket();
+
+    client.connect(config.connection.port, config.connection.host, () => {
+        time = performance.now();
+        client.write(`PING`);
+    });
+
+    client.on('data', data => {
+        data = data.toLocaleString().trim();
+
+        if (data.toUpperCase().includes('PONG')) {
+            time = performance.now() - time;
+            console.log(`Time: ${time.toFixed(0)} ms.`);
+
+            T++;
+
+            if (T < config.ping.t || config.ping.t === 0) {
+                time = performance.now();
+                client.write('PING');
+            } else if (T === config.ping.t) {
+                client.destroy();
+                process.stdin.removeAllListeners();
+                process.exit(0);
+            }
         }
-    } catch (e) {
-        console.error(e.message);
-    }
+    });
+} else {
+    process.stdin.pause();
 
-}
+    process.stdin.addListener('resume', () => {
+        setTimeout(() => {
+            process.stdout.write("SQL> ");
+        }, 25);
+    });
 
-if (db === "") {
-    db = "jsdb";
-}
+    process.stdin.addListener('data', d => {
+        process.stdin.pause();
 
-if (address === "") {
-    address = "localhost";
-}
-
-if (port === 0) {
-    port = 6637;
-}
-
-if (!pingTest) {
-    stdin.addListener("data", function (d) {
         d = d.toLocaleString().trim();
-        if (d[0] === ".") {
-            // Client internal command
+        if (d.startsWith('.')) {
             d = d.slice(1);
-            if (d === "exit") {
-                connection.close();
-            } else if (d === "help") {
-                let commands = [
-                    {
-                        "command": ".help",
-                        "description": "Display all the commands."
-                    },
 
-                    {
-                        "command": ".exit",
-                        "description": "Closes the connection."
-                    }
-                ];
-                console.table(commands);
-            } else {
-                console.error(`Unrecognized command: ${d}`);
+            switch (d) {
+                case 'exit':
+                    connection.close();
+                    break;
+
+                case 'help':
+                    console.log('.help                  \tDisplays this table');
+                    console.log('.exit                  \tCloses the connection');
+                    break;
+
+                default:
+                    console.error(`Unrecognized command: ${d}`);
+                    break;
             }
 
-            process.stdout.write("SQL> ");
+            process.stdin.resume();
         } else {
             connection.send(d);
         }
     });
-}
 
-let connectionString = `Host: ${address}; Port: ${port}; Database: ${db}; User Id: ${user}; Password: ${password};`;
-let connection = new Connection(connectionString, pingTest, t);
+    connection.open();
+}
 
 connection.client.on('data', data => {
     data = data.toLocaleString().trim();
-    if (data.toUpperCase().includes("AUTHOK")) {
-        console.log(`Connected to ${address}:${port}.`);
-        return;
-    } else if (data.toUpperCase().includes("PONG")) {
-        connection.time = performance.now() - connection.time;
-        console.log(`Time: ${time} ms.`);
-
-        T++;
-
-        if (T < t || t === 0) {
-            connection.time = performance.now();
-            connection.send("PING");
-        } else if (T === t) {
-            closeServer();
-        }
+    if (data.toUpperCase().includes('AUTHOK')) {
+        console.log(`Connected to ${config.connection.address}:${config.connection.port}, Database ${config.connection.database}.`);
+        process.stdin.resume();
         return;
     }
 
     try {
         if (data.toUpperCase().includes("AUTHERR")) {
+            // noinspection ExceptionCaughtLocallyJS
             throw new Error(data);
         }
 
         let o = JSON.parse(data);
         let t = 0;
-        if (o['code'] === 0) {
-            if (typeof o['data'] === "object") {
-                console.table(o['data']);
-            } else {
-                console.log(o['data']);
-            }
-        } else {
-            throw new Error(`ERR: ${o['message']}`);
+        if (o.code !== 0) {
+            // noinspection ExceptionCaughtLocallyJS
+            throw new Error(`ERR: ${o.message}`);
         }
 
-        if (o['time'] !== 'NOTIME') {
-            t = o['time'];
+        if (typeof o.data === 'object') {
+            console.table(o.data);
+        } else {
+            console.log(o.data);
+        }
+
+        if (o.time !== 'NOTIME') {
+            t = o.time.toFixed(1);
         }
 
         if (t !== 0) {
-            console.log(`SQL statement executed in ${t} ms.`);
+            console.log(`Statement executed in ${t} ms.`);
         }
     } catch (e) {
         console.error(e.message);
-    }
-
-    if (!data.includes("AUTHOK") && !data.includes("PONG")) {
-        process.stdout.write("SQL> ");
+    } finally {
+        process.stdin.resume();
     }
 });
 
 function closeServer() {
     console.log('Connection closed');
     connection.close();
-    stdin.removeAllListeners('data');
+    process.stdin.removeAllListeners('data');
     process.exit();
 }
 
@@ -171,16 +151,24 @@ connection.client.on('close', () => {
 });
 
 connection.client.on('error', err => {
-    if (err.code === 'ECONNREFUSED') {
-        console.error(`Connection refused. Is server running on ${address}:${port}?`);
-        process.exit();
-    } else if (err.code === 'ECONNRESET') {
-        console.error(`Connection reset. Maybe the server is no longer running on ${address}:${port}`);
-        process.exit();
-    } else if (err.code === 'ENOTFOUND') {
-        console.error(`Server at '${address}' not found. Is the server address correct?`);
-        process.exit();
-    } else {
-        console.error(err.message);
+    switch (err.code) {
+        case 'ECONNREFUSED':
+            console.error(`Connection refused. Is server running on ${config.connection.address}:${config.connection.port}?`);
+            process.exit();
+            break;
+
+        case 'ECONNRESET':
+            console.error(`Connection reset. Maybe the server is no longer running on ${config.connection.address}:${config.connection.port}`);
+            process.exit();
+            break;
+
+        case 'ENOTFOUND':
+            console.error(`Server at '${config.connection.address}' not found. Is the server address correct?`);
+            process.exit();
+            break;
+
+        default:
+            console.error(err.message);
+            break;
     }
 });

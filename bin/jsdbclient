@@ -1,2 +1,71 @@
 #!/usr/bin/env node
+
+'use strict';
+
+const {config} = require('../config');
+const minimist = require('minimist');
+
+/**
+ *
+ * @type {{help, database, address, port, user, password, pingTest, t}}
+ */
+const args = minimist(process.argv.slice(2), {
+    alias: {
+        h: 'help',
+        d: 'database',
+        a: 'address',
+        p: 'port',
+        U: 'user',
+        P: 'password',
+    },
+
+    string: [
+        'database', 'address', 'user', 'password'
+    ],
+
+    number: [
+        'port', 't'
+    ],
+
+    boolean: [
+        'help', 'pingTest'
+    ],
+
+    default: {
+        database: 'jsdb',
+        address: 'localhost',
+        port: 6637,
+        user: 'jsdbadmin',
+        pingTest: false,
+        t: 4,
+    }
+});
+
+if (args.help) {
+    console.log('Usage: jsdbclient [-a address] [-p port] [-d database] [-U username] [-P password]');
+    console.log('');
+
+    console.log('Options: ');
+    console.log('-h, --help             \tDisplays this table');
+    console.log('-d, --database         \tThe database to connect (default: jsdb)');
+    console.log('-a, --address          \tServer IP address (default: localhost)');
+    console.log('-p, --port             \tServer port (default: 6637)');
+    console.log('-U, --user             \tUser to connect (default: jsdbadmin)');
+    console.log('-P, --password         \tUser password');
+    console.log('--pingTest             \tTests the ping against the server');
+    console.log('-t                     \tThe amount of ping tests to run (default: 4)');
+
+    console.log('');
+
+    process.exit(0);
+}
+
+config.connection.database = args.database;
+config.connection.address = args.address;
+config.connection.port = args.port;
+config.connection.user = args.user;
+config.connection.password = args.password;
+config.ping.pingTest = args.pingTest;
+config.ping.t = args.t;
+
 require("../client.js");
