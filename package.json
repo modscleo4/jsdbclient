@@ -2,10 +2,6 @@
   "name": "@modscleo4/jsdbclient",
   "description": "JSDBClient is the official client for JSDB",
   "version": "1.0.0",
-  "bin": "./bin/jsdbclient",
-  "scripts": {
-    "test": "mocha"
-  },
   "author": {
     "name": "Dhiego Cassiano Fogaça Barbosa",
     "email": "modscleo4@outlook.com"
@@ -15,13 +11,33 @@
     "email": "dhiego.cf.barbosa@gmail.com"
   },
   "homepage": "https://github.com/modscleo4/jsdbclient#readme",
-  "directories": {},
   "license": "Apache-2.0",
+  "bin": {
+    "jsdbclient": "bin/jsdbclient"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "directories": {
+    "bin": "bin/",
+    "lib": "lib/"
+  },
+  "files": [
+    "client.js",
+    "connection.js",
+    "config.js",
+    "bin/",
+    "lib"
+  ],
   "dependencies": {
-    "perf_hooks": "0.0.1"
+    "perf_hooks": "^0.0.1",
+    "minimist": "^1.2.5"
   },
   "devDependencies": {
-    "mocha": "^5.2.0"
+    "mocha": "^7.1.1"
+  },
+  "engines": {
+    "node": ">=12.0.0"
   },
   "repository": {
     "type": "git",
