@@ -4,5 +4,5 @@ node_js:
 
 before_install:
   - npm install -g modscleo4/jsdb
-  - mkdir jsdb && cd jsdb
-  - jsdb --sql "create user jsdbadmin (password=jsdbadmin, valid=true, privileges='{\"*\":15}')" &
+  - mkdir jsdb
+  - jsdb --dir jsdb/ --sql "create user jsdbadmin (password=jsdbadmin, valid=true, privileges='{\"*\":15}')" &
