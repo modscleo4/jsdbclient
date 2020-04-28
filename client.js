@@ -21,7 +21,7 @@
 'use strict';
 
 const {config} = require('./config');
-const Connection = require('./lib/connection');
+const Connection = require('./lib/Connection');
 
 const {performance} = require('perf_hooks');
 

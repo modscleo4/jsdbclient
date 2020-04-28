@@ -2,7 +2,7 @@ language: node_js
 node_js:
   - "12"
 
-before_install:
+before_script:
   - npm install -g modscleo4/jsdb
   - mkdir jsdb
   - jsdb --dir jsdb/ --sql "create user jsdbadmin (password=jsdbadmin, valid=true, privileges='{\"*\":15}')" &

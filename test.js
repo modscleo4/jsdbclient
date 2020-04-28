@@ -1,3 +1,5 @@
+const Connection = require('./lib/Connection');
+
 const assert = require('assert');
 const {describe, it, before, after} = require('mocha');
 
